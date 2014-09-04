@@ -1,7 +1,6 @@
 #!/usr/bin/python3.4
 import argparse
 from subprocess import check_output
-import itertools
 
 
 class Node:
@@ -10,7 +9,8 @@ class Node:
         self.children = []
         self.width = 1
         self.parent = None
-        self.rank = 0
+        self.height = 0
+        self.branches = []
 
 
 class GraphBuilder:
@@ -34,7 +34,7 @@ class GraphBuilder:
         child = self.get(childHash)
 
         child.parent = parent
-        child.rank = parent.rank + 1
+        child.height = parent.height + 1
 
         parent.children.append(child)
         parent.width += child.width
@@ -51,33 +51,39 @@ def main():
     for b in args.branch:
         output = check_output(['git', 'log', '--reverse', '--pretty=%H', b])
         hashes = output.decode('ascii').split()
-        for curr, next in itertools.zip_longest(hashes, hashes[1:]):
+        for curr, next in zip(hashes, hashes[1:]):
             builder.add(curr, next)
 
-    ranks = []
-    max_rank = max(n.rank for n in builder.nodes)
-    for r in range(max_rank + 1):
-        ranks.append([node for node in builder.nodes if node.rank == r])
+        for h in hashes:
+            builder.get(h).branches.append(b)
+
+    heights = []
+    max_height = max(n.height for n in builder.nodes)
+    for r in range(max_height + 1):
+        heights.append([node for node in builder.nodes if node.height == r])
 
     print("""
     <html>
     <body>
     <style>
-    table {
-        border-collapse: collapse;
-    }
     td {
-        border: solid 1 #AAA;
+        border: solid 1px #AAA;
     }
     </style>
     """)
     print("<table>")
-    for nodes in ranks:
+    for nodes in heights:
         print("<tr>")
-        for node in nodes:
-            print("<td>" + node.hash + "</td>")
+        for node in sorted(nodes, key=lambda n: tuple(sorted(n.branches))):
+            print("<td>" + node.hash[:8] + "</td>")
             print("<td></td>" * (node.width - 1))
         print("</tr>")
+
+    print("<tr>")
+    for b in args.branch:
+        print("<td>" + b + "</td>")
+    print("</tr>")
+
     print("</table>")
 
 
