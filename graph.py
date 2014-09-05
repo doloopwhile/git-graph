@@ -7,7 +7,6 @@ class Node:
     def __init__(self, hash):
         self.hash = hash
         self.children = []
-        self.width = 1
         self.parent = None
         self.height = 0
         self.branches = []
@@ -37,7 +36,6 @@ class GraphBuilder:
         child.height = parent.height + 1
 
         parent.children.append(child)
-        parent.width += child.width
 
 
 def main():
@@ -72,15 +70,50 @@ def main():
     </style>
     """)
     print("<table>")
+
+    branches = list(args.branch)
+    # def compare_branch(b1, b2):
+    #     last_common_node = None
+    #     for
+
+    def branch_key(b):
+        hashes = []
+        for nodes in heights:
+            for n in nodes:
+                if b in n.branches:
+                    hashes.append(b)
+                    break
+        return tuple(hashes)
+
+    branches.sort(key=branch_key)
+
     for nodes in heights:
         print("<tr>")
-        for node in sorted(nodes, key=lambda n: tuple(sorted(n.branches))):
-            print("<td>" + node.hash[:8] + "</td>")
-            print("<td></td>" * (node.width - 1))
+
+        cells = []
+        for b in branches:
+            for node in nodes:
+                if b in node.branches:
+                    if cells[-1:] != [node]:
+                        cells.append(node)
+                    break
+            else:
+                cells.append(None)
+
+        for c in cells:
+            if c is None:
+                print("<td>&nbsp;</td>")
+            else:
+                print("<td colspan={0}>{1}</td>".format(len(c.branches), c.hash[:8]))
+
+        print("</tr>")
+        print("<tr>")
+        for _ in branches:
+            print("<td>&nbsp;</td>")
         print("</tr>")
 
     print("<tr>")
-    for b in args.branch:
+    for b in branches:
         print("<td>" + b + "</td>")
     print("</tr>")
 
